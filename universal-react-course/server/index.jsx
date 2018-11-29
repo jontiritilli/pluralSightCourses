@@ -17,7 +17,7 @@ const config = require('../webpack.config.dev.babel');
 const useLiveData = argv.useLiveData === 'true';
 
 function* getQuestions() {
-  let data = useLiveData
+  const data = useLiveData
     ? yield get(questions, { gzip: true })
     : yield fs.readFile('./data/mock-questions.json', 'utf-8');
   return JSON.parse(data);
@@ -28,12 +28,13 @@ function* getQuestion(qId) {
   if (useLiveData) {
     data = yield get(question(qId), { gzip: true, json: true });
   } else {
-    const questions = yield getQuestions();
-    const question = questions.items.find(
+    const questionsResponse = yield getQuestions();
+    const oneQuestion = questionsResponse.items.find(
+      // eslint-disable-next-line
       _question => _question.question_id == qId
     );
-    question.body = `Mock question body: ${question}`;
-    data = { items: [question] };
+    oneQuestion.body = `Mock question body: ${oneQuestion}`;
+    data = { items: [oneQuestion] };
   }
   return data;
 }
