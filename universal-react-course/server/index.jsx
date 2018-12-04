@@ -1,5 +1,5 @@
 import express from 'express';
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line
 import yields from 'express-yields';
 import fs from 'fs-extra';
 import webpack from 'webpack';
@@ -8,6 +8,13 @@ import wpHotMiddleware from 'webpack-hot-middleware';
 import { argv } from 'optimist';
 import { get } from 'request-promise';
 import { delay } from 'redux-saga';
+import { renderToString } from 'react-dom/server';
+import { Provider } from 'react-redux';
+import { ConnectedRouter } from 'react-router-redux';
+import createHistory from 'history/createMemoryHistory';
+import React from 'react';
+import getStore from '../src/getStore';
+import App from '../src/App';
 import { questions, question } from '../data/api-real-uri';
 
 const PORT = process.env.PORT || 3000;
@@ -15,6 +22,7 @@ const app = express();
 const config = require('../webpack.config.dev.babel');
 
 const useLiveData = argv.useLiveData === 'true';
+const useServerRender = argv.useServerRender === 'true';
 
 function* getQuestions() {
   const data = useLiveData
@@ -60,11 +68,37 @@ if (process.env.NODE_ENV === 'development') {
   );
   app.use(wpHotMiddleware(compiler));
 }
-app.get(['/'], function*(req, res) {
-  const index = yield fs.readFile('./public/index.html', 'utf-8');
+
+app.get(['/', 'questions/:id'], function*(req, res) {
+  let index = yield fs.readFile('./public/index.html', 'utf-8');
+
+  const initialState = {
+    Questions: [],
+  };
+  const history = createHistory({
+    initialEntries: [req.path],
+  });
+  const _questions = yield getQuestions();
+  initialState.Questions = _questions.items;
+  const store = getStore(history, initialState);
+  if (useServerRender) {
+    const appRendered = renderToString(
+      <Provider store={store}>
+        <ConnectedRouter history={history}>
+          <App />
+        </ConnectedRouter>
+      </Provider>
+    );
+    index = index.replace(`<%= preloadedApplication %>`, appRendered);
+  } else {
+    index = index.replace(
+      `<%= preloadedApplication %>`,
+      `Please wait while we load the application.`
+    );
+  }
   res.send(index);
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`App running on ${PORT}`);
+  console.log(`App running on port ${PORT}`);
 });
