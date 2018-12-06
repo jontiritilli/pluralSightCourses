@@ -10,8 +10,15 @@ const history = createHistory();
 
 const store = getStore(history);
 
-const fetchDataForLocation = () => {
-  store.dispatch({ type: 'REQUEST_FETCH_QUESTIONS' });
+const fetchDataForLocation = location => {
+  if (location.pathname === '/') {
+    store.dispatch({ type: 'REQUEST_FETCH_QUESTIONS' });
+  } else {
+    store.dispatch({
+      type: 'REQUEST_FETCH_QUESTION',
+      question_id: location.pathname.split('/')[2],
+    });
+  }
 };
 
 const render = MyApp => {
@@ -43,4 +50,5 @@ store.subscribe(() => {
   }
 });
 
-fetchDataForLocation();
+fetchDataForLocation(history.location);
+history.listen(fetchDataForLocation);

@@ -1,7 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Route, Link } from 'react-router-dom';
-import PropType from 'prop-types';
 import QuestionList from './components/QuestionList';
 import QuestionDetail from './components/QuestionDetail';
 

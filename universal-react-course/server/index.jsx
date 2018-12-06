@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 // eslint-disable-next-line
 import yields from 'express-yields';
 import fs from 'fs-extra';
@@ -67,20 +68,32 @@ if (process.env.NODE_ENV === 'development') {
     })
   );
   app.use(wpHotMiddleware(compiler));
+} else {
+  app.use(express.static(path.resolve(__dirname, '../dist')));
 }
 
-app.get(['/', 'questions/:id'], function*(req, res) {
+app.get(['/', '/questions/:id'], function*(req, res) {
   let index = yield fs.readFile('./public/index.html', 'utf-8');
 
   const initialState = {
     Questions: [],
   };
+
   const history = createHistory({
     initialEntries: [req.path],
   });
-  const _questions = yield getQuestions();
-  initialState.Questions = _questions.items;
+  if (req.params.id) {
+    const questionId = req.params.id;
+    const response = yield getQuestion(questionId);
+    const questionDetails = response.items[0];
+    initialState.Questions = [{ ...questionDetails, questionId }];
+  } else {
+    const _questions = yield getQuestions();
+    initialState.Questions = _questions.items;
+  }
+
   const store = getStore(history, initialState);
+
   if (useServerRender) {
     const appRendered = renderToString(
       <Provider store={store}>
